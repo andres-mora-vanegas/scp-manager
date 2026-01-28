@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SCP Manager - Connection</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <div class="header-content">
+          <div>
+            <h1>SCP Manager</h1>
+            <p class="subtitle">Secure File Transfer</p>
+          </div>
+          <div class="header-actions">
+            <button type="button" class="header-btn" id="settingsBtn" title="Settings">
+              <span>⚙️</span>
+            </button>
+            <button
+              type="button"
+              class="dark-mode-toggle"
+              id="darkModeToggle"
+              title="Toggle Dark Mode"
+            >
+              <span id="darkModeIcon">🌙</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <!-- Connection Form View -->
+        <div id="connectionView" class="connection-layout">
+          <!-- Sidebar for saved connections -->
+          <aside class="connections-sidebar">
+            <div class="sidebar-header">
+              <h3>Saved Connections</h3>
+              <div class="sidebar-actions">
+                <button
+                  type="button"
+                  class="btn-icon btn-sm"
+                  id="exportConnectionsBtn"
+                  title="Export Connections"
+                >
+                  <span>📤</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon btn-sm"
+                  id="importConnectionsBtn"
+                  title="Import Connections"
+                >
+                  <span>📥</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon btn-sm"
+                  id="refreshConnectionsBtn"
+                  title="Refresh"
+                >
+                  <span>🔄</span>
+                </button>
+              </div>
+            </div>
+            <div id="savedConnectionsList" class="saved-connections-list">
+              <div class="empty-connections-message">
+                <p>No saved connections</p>
+                <small>Create a new connection to get started</small>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Main form panel -->
+          <div class="connection-form-panel">
+            <div class="connection-header">
+              <h2 id="formTitle">New Connection</h2>
+              <label class="checkbox-label">
+                <input type="checkbox" id="saveConnection" checked />
+                <span>Save connection</span>
+              </label>
+            </div>
+
+            <form id="connectionForm" class="connection-form">
+              <div class="form-group">
+                <label for="connectionType">Connection Type</label>
+                <div class="custom-select-wrapper">
+                  <div class="custom-select" id="connectionTypeSelect">
+                    <div class="custom-select-trigger">
+                      <span class="custom-select-value" data-value="scp">SCP</span>
+                      <span class="custom-select-arrow">▼</span>
+                    </div>
+                    <ul class="custom-select-options" id="connectionTypeOptions">
+                      <li class="custom-select-option" data-value="scp">SCP</li>
+                      <li class="custom-select-option" data-value="sftp">SFTP</li>
+                    </ul>
+                  </div>
+                  <input
+                    type="hidden"
+                    id="connectionType"
+                    name="connectionType"
+                    value="scp"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="host">Host</label>
+                <input
+                  type="text"
+                  id="host"
+                  name="host"
+                  class="form-control"
+                  placeholder="example.com or 192.168.1.100"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="port">Port</label>
+                <input
+                  type="number"
+                  id="port"
+                  name="port"
+                  class="form-control"
+                  placeholder="22"
+                  value="22"
+                  min="1"
+                  max="65535"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="username">Username</label>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  class="form-control"
+                  placeholder="Enter username"
+                  required
+                />
+              </div>
+
+              <div class="auth-method-section">
+                <label class="section-label">Authentication Method</label>
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input
+                      type="radio"
+                      name="authMethod"
+                      value="password"
+                      checked
+                      id="authPassword"
+                    />
+                    <span>Password</span>
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" name="authMethod" value="keyfile" id="authKeyfile" />
+                    <span>Public Key File</span>
+                  </label>
+                </div>
+              </div>
+
+              <div id="passwordSection" class="form-group auth-section">
+                <label for="password">Password</label>
+                <div class="password-input-wrapper">
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    class="form-control"
+                    placeholder="Enter password"
+                  />
+                  <button
+                    type="button"
+                    class="toggle-password"
+                    id="togglePassword"
+                    aria-label="Toggle password visibility"
+                  >
+                    <span class="eye-icon">👁️</span>
+                  </button>
+                </div>
+              </div>
+
+              <div id="keyfileSection" class="form-group auth-section" style="display: none">
+                <label for="keyfile">Private Key File</label>
+                <div class="file-input-wrapper">
+                  <input
+                    type="text"
+                    id="keyfile"
+                    name="keyfile"
+                    class="form-control file-path-input"
+                    placeholder="Select private key file..."
+                    readonly
+                  />
+                  <button type="button" class="browse-btn" id="browseKeyfile">Browse</button>
+                </div>
+                <small class="form-hint">Select your private key file (e.g., ~/.ssh/id_rsa)</small>
+              </div>
+
+              <div class="form-group">
+                <label for="connectionName">Connection Name (Optional)</label>
+                <input
+                  type="text"
+                  id="connectionName"
+                  name="connectionName"
+                  class="form-control"
+                  placeholder="My Server"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="useSudo" name="useSudo" />
+                  <span>Use sudo for file operations (access files owned by other users)</span>
+                </label>
+              </div>
+
+              <div id="sudoSection" class="form-group auth-section" style="display: none">
+                <label for="sudoPassword">Sudo Password (Optional)</label>
+                <div class="password-input-wrapper">
+                  <input
+                    type="password"
+                    id="sudoPassword"
+                    name="sudoPassword"
+                    class="form-control"
+                    placeholder="Leave empty to use connection password"
+                  />
+                  <button
+                    type="button"
+                    class="toggle-password"
+                    id="toggleSudoPassword"
+                    aria-label="Toggle password visibility"
+                  >
+                    <span class="eye-icon">👁️</span>
+                  </button>
+                </div>
+                <small class="form-hint">If empty, will use the connection password for sudo</small>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancelBtn">Clear</button>
+                <button type="submit" class="btn btn-primary" id="connectBtn">Connect</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- File Browser View -->
+        <div id="fileBrowserView" class="file-browser-panel" style="display: none">
+          <div class="browser-header">
+            <div class="connection-info">
+              <h2 id="connectionTitle">Connected</h2>
+              <span class="connection-status" id="connectionStatus">
+                <span class="status-indicator"></span>
+                <span id="statusText">Connected</span>
+              </span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="disconnectBtn">
+              Disconnect
+            </button>
+          </div>
+
+          <div class="path-bar">
+            <button class="btn-icon" id="homeBtn" title="Home">
+              <span>🏠</span>
+            </button>
+            <button class="btn-icon" id="upBtn" title="Up">
+              <span>⬆️</span>
+            </button>
+            <button class="btn-icon" id="refreshBtn" title="Refresh">
+              <span>🔄</span>
+            </button>
+            <div class="path-display" id="currentPath">/</div>
+          </div>
+
+          <div class="file-list-container">
+            <div class="file-list-header">
+              <div class="file-col-name">Name</div>
+              <div class="file-col-size">Size</div>
+              <div class="file-col-modified">Modified</div>
+              <div class="file-col-permissions">Permissions</div>
+            </div>
+            <div class="file-list" id="fileList">
+              <div class="loading-message">Loading...</div>
+            </div>
+          </div>
+
+          <div class="browser-footer">
+            <div class="file-count" id="fileCount">0 items</div>
+            <div id="editingStatus" class="editing-status" style="display: none">
+              <span class="editing-label">Editing:</span>
+              <div id="editingFilesList" class="editing-files-list"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu" style="display: none">
+      <div class="context-menu-item" id="editFileOption">✏️ Edit File</div>
+      <div class="context-menu-item" id="downloadFileOption">⬇️ Download</div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Settings</h2>
+          <button type="button" class="modal-close" id="closeSettingsBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="editorSelect">Default Editor</label>
+            <select id="editorSelect" class="form-control">
+              <option value="default">OS Default</option>
+            </select>
+            <small class="form-hint">Select the editor to use when editing files</small>
+          </div>
+          <div class="form-group">
+            <label for="customEditorPath">Custom Editor Path (optional)</label>
+            <div class="file-input-wrapper">
+              <input
+                type="text"
+                id="customEditorPath"
+                class="form-control file-path-input"
+                placeholder="e.g., /usr/bin/code or code"
+              />
+              <button type="button" class="browse-btn" id="browseEditorBtn">Browse</button>
+            </div>
+            <small class="form-hint">Or enter a custom editor command/path</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelSettingsBtn">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveSettingsBtn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>

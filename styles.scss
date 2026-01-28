@@ -1,0 +1,1520 @@
+// Variables
+$primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$dark-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+
+// Colors - Light Mode
+$bg-primary: #667eea;
+$bg-secondary: #764ba2;
+$bg-white: #ffffff;
+$bg-light: #f5f6fa;
+$bg-lighter: #f8f9fa;
+$bg-lightest: #f0f0f0;
+
+$text-primary: #333;
+$text-secondary: #555;
+$text-tertiary: #666;
+$text-quaternary: #888;
+$text-quinary: #999;
+$text-light: #e0e0e0;
+
+$border-light: #e0e0e0;
+$border-medium: #f0f0f0;
+
+$shadow-light: rgba(0, 0, 0, 0.3);
+$shadow-medium: rgba(0, 0, 0, 0.15);
+$shadow-dark: rgba(0, 0, 0, 0.6);
+
+// Colors - Dark Mode
+$dark-bg-primary: #2d2d44;
+$dark-bg-secondary: #252538;
+$dark-bg-tertiary: #3a3a52;
+$dark-bg-quaternary: #4a4a62;
+$dark-bg-quinary: #5a5a72;
+
+$dark-text-primary: #e0e0e0;
+$dark-text-secondary: #d0d0e0;
+$dark-text-tertiary: #c0c0d0;
+$dark-text-quaternary: #b0b0c0;
+$dark-text-quinary: #a0a0b0;
+
+$dark-border: #404050;
+$dark-border-light: #505065;
+$dark-border-medium: #606075;
+
+$dark-shadow: rgba(0, 0, 0, 0.4);
+$dark-shadow-light: rgba(0, 0, 0, 0.6);
+
+// Spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 12px;
+$spacing-lg: 20px;
+$spacing-xl: 30px;
+
+// Border Radius
+$radius-sm: 4px;
+$radius-md: 6px;
+$radius-lg: 8px;
+$radius-xl: 12px;
+
+// Transitions
+$transition-fast: 0.2s ease;
+$transition-normal: 0.3s ease;
+
+// Mixins
+@mixin transition($properties...) {
+  transition: $properties;
+}
+
+@mixin dark-mode {
+  body.dark-mode & {
+    @content;
+  }
+}
+
+@mixin scrollbar($track-color, $thumb-color, $thumb-hover-color) {
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $track-color;
+    border-radius: $radius-sm;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $thumb-color;
+    border-radius: $radius-sm;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: $thumb-hover-color;
+  }
+}
+
+@mixin form-control {
+  padding: $spacing-md 15px;
+  border: 2px solid $border-light;
+  border-radius: $radius-lg;
+  font-size: 14px;
+  @include transition(all $transition-normal);
+  background: $bg-white;
+  color: $text-primary;
+
+  @include dark-mode {
+    background: $dark-bg-tertiary;
+    border-color: $dark-border-light;
+    color: $dark-text-primary;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $bg-primary;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+
+    @include dark-mode {
+      border-color: #8a9eff;
+      box-shadow: 0 0 0 3px rgba(138, 158, 255, 0.2);
+    }
+  }
+
+  &::placeholder {
+    color: $text-quinary;
+
+    @include dark-mode {
+      color: $text-quaternary;
+    }
+  }
+}
+
+@mixin button-base {
+  padding: $spacing-md 24px;
+  border: none;
+  border-radius: $radius-lg;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  @include transition(all $transition-normal);
+  min-width: 100px;
+}
+
+// Reset
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+// Body
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: $primary-gradient;
+  color: $text-primary;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-lg;
+  margin: 0;
+  overflow: hidden;
+  @include transition(background $transition-normal, color $transition-normal);
+
+  &.dark-mode {
+    background: $dark-gradient;
+    color: $dark-text-primary;
+  }
+}
+
+// Container
+.container {
+  width: 100%;
+  max-width: 1200px;
+  height: 100%;
+  max-height: calc(100vh - 40px);
+  background: $bg-white;
+  border-radius: $radius-xl;
+  box-shadow: 0 20px 60px $shadow-light;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  @include transition(background $transition-normal, box-shadow $transition-normal);
+
+  @include dark-mode {
+    background: $dark-bg-primary;
+    box-shadow: 0 20px 60px $dark-shadow-light;
+  }
+}
+
+// Header
+.header {
+  background: $primary-gradient;
+  color: white;
+  padding: $spacing-xl;
+
+  @include dark-mode {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+  }
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+
+  > div:first-child {
+    flex: 1;
+  }
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.header-btn,
+.dark-mode-toggle {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  @include transition(all $transition-normal);
+  font-size: 20px;
+  color: white;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.1);
+  }
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.subtitle {
+  font-size: 14px;
+  opacity: 0.9;
+  font-weight: 300;
+}
+
+// Main Content
+.main-content {
+  flex: 1;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+// Connection Header
+.connection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-shrink: 0;
+  padding-bottom: $spacing-lg;
+  border-bottom: 2px solid $border-medium;
+  @include transition(border-color $transition-normal);
+
+  @include dark-mode {
+    border-bottom-color: $dark-border;
+  }
+
+  h2 {
+    font-size: 22px;
+    color: $text-primary;
+    font-weight: 600;
+    margin: 0;
+    @include transition(color $transition-normal);
+
+    @include dark-mode {
+      color: $dark-text-primary;
+    }
+  }
+}
+
+// Form Styles
+.connection-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  flex: 1;
+  min-height: 0;
+  color: inherit;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+
+  label {
+    font-size: 14px;
+    font-weight: 500;
+    color: $text-secondary;
+    @include transition(color $transition-normal);
+
+    @include dark-mode {
+      color: $dark-text-primary;
+    }
+  }
+}
+
+.form-control {
+  @include form-control;
+}
+
+// Custom Select
+.custom-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select {
+  position: relative;
+  width: 100%;
+
+  &.open {
+    .custom-select-arrow {
+      transform: rotate(180deg);
+    }
+
+    .custom-select-options {
+      display: block;
+    }
+  }
+}
+
+.custom-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md 15px;
+  border: 2px solid $border-light;
+  border-radius: $radius-lg;
+  font-size: 14px;
+  background: $bg-white;
+  color: $text-primary;
+  cursor: pointer;
+  @include transition(all $transition-normal);
+  user-select: none;
+
+  @include dark-mode {
+    background: $dark-bg-tertiary;
+    border-color: $dark-border-light;
+    color: $dark-text-primary;
+  }
+
+  &:hover {
+    border-color: $bg-primary;
+
+    @include dark-mode {
+      border-color: #8a9eff;
+    }
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $bg-primary;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+
+    @include dark-mode {
+      border-color: #8a9eff;
+      box-shadow: 0 0 0 3px rgba(138, 158, 255, 0.2);
+    }
+  }
+}
+
+.custom-select-value {
+  flex: 1;
+}
+
+.custom-select-arrow {
+  font-size: 10px;
+  @include transition(transform $transition-normal);
+  color: $text-tertiary;
+  margin-left: 10px;
+
+  @include dark-mode {
+    color: $dark-text-quaternary;
+  }
+}
+
+.custom-select-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: $bg-white;
+  border: 2px solid $border-light;
+  border-radius: $radius-lg;
+  box-shadow: 0 4px 12px $shadow-medium;
+  list-style: none;
+  padding: 4px 0;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+  @include transition(all $transition-normal);
+
+  @include dark-mode {
+    background: $dark-bg-tertiary;
+    border-color: $dark-border-light;
+    box-shadow: 0 4px 12px $dark-shadow;
+  }
+}
+
+.custom-select-option {
+  padding: 10px 15px;
+  cursor: pointer;
+  @include transition(background $transition-fast);
+  color: $text-primary;
+
+  @include dark-mode {
+    color: $dark-text-primary;
+  }
+
+  &:hover {
+    background: $bg-lightest;
+
+    @include dark-mode {
+      background: $dark-bg-quaternary;
+    }
+  }
+
+  &.selected {
+    background: #e3e8ff;
+    font-weight: 500;
+
+    @include dark-mode {
+      background: $dark-bg-quaternary;
+      color: #8a9eff;
+    }
+  }
+}
+
+// Auth Method Section
+.auth-method-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.section-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: $text-secondary;
+  @include transition(color $transition-normal);
+
+  @include dark-mode {
+    color: $dark-text-secondary;
+  }
+}
+
+.radio-group {
+  display: flex;
+  gap: $spacing-lg;
+  flex-wrap: wrap;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  cursor: pointer;
+  font-size: 14px;
+  color: $text-secondary;
+  user-select: none;
+  @include transition(color $transition-normal);
+
+  @include dark-mode {
+    color: $dark-text-secondary;
+  }
+
+  input[type='radio'] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: $bg-primary;
+  }
+}
+
+.auth-section {
+  margin-top: 5px;
+  animation: fadeIn 0.3s ease;
+}
+
+// Password Input
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .form-control {
+    padding-right: 45px;
+    width: 100%;
+  }
+}
+
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  @include transition(opacity $transition-fast);
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.eye-icon {
+  font-size: 18px;
+}
+
+// File Input
+.file-input-wrapper {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.file-path-input {
+  flex: 1;
+}
+
+.browse-btn {
+  padding: $spacing-md $spacing-lg;
+  background: $bg-primary;
+  color: white;
+  border: none;
+  border-radius: $radius-lg;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  @include transition(all $transition-normal);
+  white-space: nowrap;
+
+  &:hover {
+    background: #5568d3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.form-hint {
+  font-size: 12px;
+  color: $text-quaternary;
+  margin-top: 5px;
+  @include transition(color $transition-normal);
+
+  @include dark-mode {
+    color: $dark-text-quinary;
+  }
+}
+
+// Form Actions
+.form-actions {
+  display: flex;
+  gap: $spacing-md;
+  justify-content: flex-end;
+  margin-top: 10px;
+  padding-top: $spacing-lg;
+  border-top: 1px solid $border-light;
+}
+
+// Buttons
+.btn {
+  @include button-base;
+}
+
+.btn-primary {
+  background: $primary-gradient;
+  color: white;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.btn-secondary {
+  background: $bg-light;
+  color: $text-tertiary;
+  border: 2px solid $border-light;
+
+  @include dark-mode {
+    background: $dark-bg-tertiary;
+    color: $dark-text-primary;
+    border-color: $dark-border-light;
+  }
+
+  &:hover {
+    background: #e8e8e8;
+    border-color: #d0d0d0;
+
+    @include dark-mode {
+      background: $dark-bg-quaternary;
+      border-color: $dark-border-medium;
+    }
+  }
+}
+
+.btn-sm {
+  padding: $spacing-sm 16px;
+  font-size: 13px;
+  min-width: auto;
+}
+
+.btn-xs {
+  padding: 2px 6px;
+  font-size: 11px;
+  min-width: auto;
+}
+
+.btn-icon {
+  background: $bg-white;
+  border: 1px solid $border-light;
+  border-radius: $radius-md;
+  padding: $spacing-sm $spacing-md;
+  cursor: pointer;
+  font-size: 16px;
+  @include transition(all $transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @include dark-mode {
+    background: $dark-bg-tertiary;
+    border-color: $dark-border-light;
+  }
+
+  &:hover {
+    background: $bg-lightest;
+    border-color: $bg-primary;
+
+    @include dark-mode {
+      background: $dark-bg-quaternary;
+      border-color: #8a9eff;
+    }
+  }
+}
+
+// Checkbox Label
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-size: 14px;
+  color: $text-tertiary;
+  cursor: pointer;
+  user-select: none;
+  @include transition(color $transition-normal);
+
+  @include dark-mode {
+    color: $dark-text-secondary;
+  }
+
+  input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: $bg-primary;
+  }
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// File Browser
+.file-browser-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.browser-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-lg $spacing-xl;
+  border-bottom: 2px solid $border-light;
+  @include transition(border-color $transition-normal);
+
+  @include dark-mode {
+    border-bottom-color: $dark-border;
+  }
+}
+
+.connection-info {
+  h2 {
+    font-size: 20px;
+    margin-bottom: 5px;
+    color: $text-primary;
+    @include transition(color $transition-normal);
+
+    @include dark-mode {
+      color: $dark-text-primary;
+    }
+  }
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-size: 13px;
+  color: $text-tertiary;
+  @include transition(color $transition-normal);
+
+  @include dark-mode {
+    color: $dark-text-quaternary;
+  }
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4caf50;
+  animation: pulse 2s infinite;
+}
+
+.path-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px $spacing-xl;
+  background: $bg-lighter;
+  border-bottom: 1px solid $border-light;
+  @include transition(background $transition-normal, border-color $transition-normal);
+
+  @include dark-mode {
+    background: $dark-bg-secondary;
+    border-bottom-color: $dark-border;
+  }
+}
+
+.path-display {
+  flex: 1;
+  padding: $spacing-sm $spacing-md;
+  background: $bg-white;
+  border: 1px solid $border-light;
+  border-radius: $radius-md;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: $text-primary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  @include transition(
+    background $transition-normal,
+    border-color $transition-normal,
+    color $transition-normal
+  );
+
+  @include dark-mode {
+    background: $dark-bg-tertiary;
+    border-color: $dark-border-light;
+    color: $dark-text-primary;
+  }
+}
+
+.file-list-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.file-list-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr 1fr;
+  gap: 15px;
+  padding: $spacing-md $spacing-xl;
+  background: $bg-lighter;
+  border-bottom: 2px solid $border-light;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: $text-tertiary;
+  @include transition(
+    background $transition-normal,
+    border-color $transition-normal,
+    color $transition-normal
+  );
+
+  @include dark-mode {
+    background: $dark-bg-secondary;
+    border-bottom-color: $dark-border;
+    color: $dark-text-tertiary;
+  }
+}
+
+.file-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: $bg-white;
+  @include transition(background $transition-normal);
+
+  @include dark-mode {
+    background: $dark-bg-primary;
+  }
+
+  @include scrollbar(#f1f1f1, #c1c1c1, #a8a8a8);
+
+  @include dark-mode {
+    &::-webkit-scrollbar-track {
+      background: $dark-bg-secondary;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: $dark-border-light;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: $dark-border-medium;
+    }
+  }
+}
+
+.file-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr 1fr;
+  gap: 15px;
+  padding: $spacing-md $spacing-xl;
+  border-bottom: 1px solid $border-medium;
+  cursor: pointer;
+  @include transition(background $transition-fast, color $transition-fast);
+  align-items: center;
+  color: $text-primary;
+
+  @include dark-mode {
+    border-bottom-color: $dark-border;
+    color: $dark-text-primary;
+  }
+
+  &:hover {
+    background: $bg-lighter;
+
+    @include dark-mode {
+      background: $dark-bg-tertiary;
+      color: #ffffff;
+    }
+  }
+
+  &.directory {
+    font-weight: 500;
+  }
+
+  &.symlink,
+  &.symlink-dir {
+    font-style: italic;
+    color: $bg-primary;
+
+    @include dark-mode {
+      color: #8a9eff;
+    }
+  }
+
+  &.symlink-dir {
+    font-weight: 500;
+  }
+
+  &.selected {
+    background: #e3e8ff;
+
+    @include dark-mode {
+      background: $dark-bg-quaternary;
+      color: #ffffff;
+    }
+  }
+}
+
+.file-name {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  overflow: hidden;
+}
+
+.file-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  color: inherit;
+
+  @include dark-mode {
+    color: $dark-text-primary;
+  }
+}
+
+.file-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+
+  @include dark-mode {
+    color: $dark-text-primary;
+  }
+}
+
+.file-size {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: $text-tertiary;
+  @include transition(color $transition-normal);
+
+  @include dark-mode {
+    color: $dark-text-tertiary;
+  }
+}
+
+.file-modified {
+  font-size: 13px;
+  color: $text-tertiary;
+  @include transition(color $transition-normal);
+
+  @include dark-mode {
+    color: $dark-text-tertiary;
+  }
+}
+
+.file-permissions {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: $text-quaternary;
+  @include transition(color $transition-normal);
+
+  @include dark-mode {
+    color: $dark-text-quaternary;
+  }
+}
+
+.loading-message,
+.empty-message {
+  padding: 40px;
+  text-align: center;
+  color: $text-quinary;
+  font-size: 14px;
+  @include transition(color $transition-normal);
+
+  @include dark-mode {
+    color: $text-quaternary;
+  }
+}
+
+.error-message {
+  padding: 40px;
+  text-align: center;
+  color: #d32f2f;
+  font-size: 14px;
+  background: #ffebee;
+  margin: $spacing-lg;
+  border-radius: $radius-lg;
+}
+
+.browser-footer {
+  padding: $spacing-md $spacing-xl;
+  border-top: 1px solid $border-light;
+  background: $bg-lighter;
+  font-size: 13px;
+  color: $text-tertiary;
+  @include transition(
+    background $transition-normal,
+    border-color $transition-normal,
+    color $transition-normal
+  );
+
+  @include dark-mode {
+    background: $dark-bg-secondary;
+    border-top-color: $dark-border;
+    color: $dark-text-quaternary;
+  }
+}
+
+.file-count {
+  font-weight: 500;
+}
+
+// Connection Layout
+.connection-layout {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+// Sidebar
+.connections-sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: $bg-light;
+  border-right: 1px solid $border-light;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  @include transition(background $transition-normal, border-color $transition-normal);
+
+  @include dark-mode {
+    background: $dark-bg-secondary;
+    border-right-color: $dark-border;
+  }
+}
+
+.sidebar-header {
+  padding: $spacing-lg;
+  border-bottom: 1px solid $border-light;
+  background: $bg-white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  @include transition(background $transition-normal, border-color $transition-normal);
+
+  @include dark-mode {
+    background: $dark-bg-primary;
+    border-bottom-color: $dark-border;
+  }
+
+  h3 {
+    font-size: 16px;
+    color: $text-primary;
+    font-weight: 600;
+    margin: 0;
+    @include transition(color $transition-normal);
+
+    @include dark-mode {
+      color: $dark-text-primary;
+    }
+  }
+}
+
+.sidebar-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.saved-connections-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+
+  @include scrollbar(transparent, #c1c1c1, #a8a8a8);
+
+  @include dark-mode {
+    &::-webkit-scrollbar-thumb {
+      background: $dark-border-light;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: $dark-border-medium;
+    }
+  }
+}
+
+.empty-connections-message {
+  padding: 40px $spacing-lg;
+  text-align: center;
+  color: $text-quinary;
+  @include transition(color $transition-normal);
+
+  @include dark-mode {
+    color: $text-quaternary;
+  }
+
+  p {
+    font-size: 14px;
+    margin-bottom: 5px;
+    font-weight: 500;
+
+    @include dark-mode {
+      color: $dark-text-quinary;
+    }
+  }
+
+  small {
+    font-size: 12px;
+    color: #bbb;
+    @include transition(color $transition-normal);
+
+    @include dark-mode {
+      color: $text-quaternary;
+    }
+  }
+}
+
+// Connection Form Panel
+.connection-form-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: $bg-white;
+  padding: $spacing-xl;
+  overflow-y: auto;
+  overflow-x: hidden;
+  @include transition(background $transition-normal);
+
+  @include dark-mode {
+    background: $dark-bg-primary;
+    color: $dark-text-primary;
+  }
+
+  @include scrollbar(#f1f1f1, #c1c1c1, #a8a8a8);
+
+  @include dark-mode {
+    &::-webkit-scrollbar-track {
+      background: $dark-bg-secondary;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: $dark-border-light;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: $dark-border-medium;
+    }
+  }
+}
+
+// Saved Connection Items
+.saved-connection-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md;
+  margin-bottom: $spacing-sm;
+  background: $bg-white;
+  border: 1px solid $border-light;
+  border-radius: $radius-lg;
+  @include transition(all $transition-fast);
+  cursor: pointer;
+
+  @include dark-mode {
+    background: $dark-bg-tertiary;
+    border-color: $dark-border-light;
+  }
+
+  &:hover {
+    border-color: $bg-primary;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+    transform: translateY(-1px);
+
+    @include dark-mode {
+      background: $dark-bg-quaternary;
+      border-color: #8a9eff;
+      box-shadow: 0 2px 8px rgba(138, 158, 255, 0.3);
+    }
+
+    .saved-connection-actions {
+      opacity: 1;
+    }
+  }
+
+  &.selected {
+    border-color: $bg-primary;
+    background: #f0f4ff;
+    box-shadow: 0 2px 12px rgba(102, 126, 234, 0.2);
+
+    @include dark-mode {
+      background: $dark-bg-quaternary;
+      border-color: #8a9eff;
+      box-shadow: 0 2px 12px rgba(138, 158, 255, 0.3);
+    }
+
+    .saved-connection-actions {
+      opacity: 1;
+    }
+
+    .saved-connection-name {
+      color: $bg-primary;
+
+      @include dark-mode {
+        color: #8a9eff;
+      }
+    }
+  }
+}
+
+.saved-connection-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  min-width: 0;
+}
+
+.saved-connection-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.saved-connection-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.saved-connection-name {
+  font-weight: 600;
+  color: $text-primary;
+  margin-bottom: 4px;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  @include transition(color $transition-normal);
+
+  @include dark-mode {
+    color: $dark-text-primary;
+  }
+}
+
+.saved-connection-details {
+  font-size: 12px;
+  color: $text-quaternary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  @include transition(color $transition-normal);
+
+  @include dark-mode {
+    color: $dark-text-quaternary;
+  }
+}
+
+.saved-connection-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  @include transition(opacity $transition-fast);
+}
+
+// Context Menu
+.context-menu {
+  position: fixed;
+  background: $bg-white;
+  border: 1px solid $border-light;
+  border-radius: $radius-lg;
+  box-shadow: 0 4px 12px $shadow-medium;
+  z-index: 1000;
+  min-width: 180px;
+  overflow: hidden;
+  @include transition(background $transition-normal, border-color $transition-normal);
+
+  @include dark-mode {
+    background: $dark-bg-tertiary;
+    border-color: $dark-border-light;
+    box-shadow: 0 4px 12px $dark-shadow;
+  }
+}
+
+.context-menu-item {
+  padding: $spacing-md 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: $text-primary;
+  @include transition(background $transition-fast);
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+
+  @include dark-mode {
+    color: $dark-text-primary;
+  }
+
+  &:hover {
+    background: $bg-lightest;
+
+    @include dark-mode {
+      background: $dark-bg-quaternary;
+    }
+  }
+
+  &:active {
+    background: #e0e0e0;
+
+    @include dark-mode {
+      background: $dark-bg-quinary;
+    }
+  }
+}
+
+// Editing Status
+.editing-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: $spacing-sm $spacing-md;
+  background: #e3f2fd;
+  border-radius: $radius-md;
+  font-size: 13px;
+  color: #1976d2;
+  margin-left: auto;
+  max-width: 400px;
+  @include transition(background $transition-normal, color $transition-normal);
+
+  @include dark-mode {
+    background: #1e3a5f;
+    color: #64b5f6;
+  }
+}
+
+.editing-label {
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.editing-files-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  align-items: center;
+}
+
+.editing-file-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px $spacing-sm;
+  background: $bg-white;
+  border-radius: $radius-sm;
+  border: 1px solid #90caf9;
+  font-size: 12px;
+  @include transition(background $transition-normal, border-color $transition-normal);
+
+  @include dark-mode {
+    background: $dark-bg-tertiary;
+    border-color: #64b5f6;
+  }
+}
+
+.editing-file-name {
+  font-weight: 500;
+  color: #1976d2;
+  @include transition(color $transition-normal);
+
+  @include dark-mode {
+    color: #64b5f6;
+  }
+}
+
+.editing-status .btn-icon {
+  padding: 2px 4px;
+  font-size: 10px;
+}
+
+.browser-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+// Modal Styles
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  background: $bg-white;
+  border-radius: $radius-xl;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px $shadow-light;
+  animation: modalFadeIn 0.3s ease;
+
+  @include dark-mode {
+    background: $dark-bg-primary;
+    color: $dark-text-primary;
+  }
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-header {
+  padding: $spacing-lg $spacing-xl;
+  border-bottom: 1px solid $border-light;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+
+  @include dark-mode {
+    border-bottom-color: $dark-border;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 22px;
+    color: $text-primary;
+
+    @include dark-mode {
+      color: $dark-text-primary;
+    }
+  }
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: $text-tertiary;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  @include transition(all $transition-fast);
+
+  @include dark-mode {
+    color: $dark-text-quaternary;
+  }
+
+  &:hover {
+    background: $bg-lightest;
+    color: $text-primary;
+
+    @include dark-mode {
+      background: $dark-bg-tertiary;
+      color: $dark-text-primary;
+    }
+  }
+}
+
+.modal-body {
+  padding: $spacing-xl;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  padding: $spacing-lg $spacing-xl;
+  border-top: 1px solid $border-light;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+
+  @include dark-mode {
+    border-top-color: $dark-border;
+  }
+}

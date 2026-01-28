@@ -1,0 +1,21 @@
+node_modules/
+*.log
+.DS_Store
+dist/
+build/
+*.swp
+*.swo
+*~
+styles.css.map
+# Build artifacts
+*.AppImage
+*.deb
+*.rpm
+*.exe
+*.dmg
+*.pkg
+*.zip
+*.tar.gz
+# Electron build
+out/
+
