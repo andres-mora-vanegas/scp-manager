@@ -24,7 +24,7 @@
     "file-manager",
     "electron"
   ],
-  "author": "",
+  "author": "Andres Mora Vanegas",
   "license": "MIT",
   "build": {
     "appId": "com.scpmanager.app",
@@ -51,16 +51,11 @@
           "arch": [
             "x64"
           ]
-        },
-        {
-          "target": "deb",
-          "arch": [
-            "x64"
-          ]
         }
       ],
       "category": "Network",
-      "icon": "assets/icon.png"
+      "icon": "assets/icon.png",
+      "maintainer": "Andres Mora Vanegas <andresmoradeveloper@gmail.com>"
     },
     "win": {
       "target": [
