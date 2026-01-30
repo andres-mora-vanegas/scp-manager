@@ -1,6 +1,7 @@
 const { ipcRenderer } = require('electron');
 const fs = require('fs');
 const path = require('path');
+const { Client } = require('ssh2');
 const SSHConnection = require('./ssh-connection');
 
 // Global connection instance
@@ -27,6 +28,12 @@ const fileBrowserView = document.getElementById('fileBrowserView');
 const connectionTitle = document.getElementById('connectionTitle');
 const statusText = document.getElementById('statusText');
 const disconnectBtn = document.getElementById('disconnectBtn');
+const sshConsoleBtn = document.getElementById('sshConsoleBtn');
+const sshConsoleOverlay = document.getElementById('sshConsoleOverlay');
+const sshConsoleClose = document.getElementById('sshConsoleClose');
+const sshConsoleMinimize = document.getElementById('sshConsoleMinimize');
+const sshConsoleTitle = document.getElementById('sshConsoleTitle');
+const sshConsoleTerminalEl = document.getElementById('sshConsoleTerminal');
 const homeBtn = document.getElementById('homeBtn');
 const upBtn = document.getElementById('upBtn');
 const refreshBtn = document.getElementById('refreshBtn');
@@ -502,6 +509,11 @@ connectionForm.addEventListener('submit', async e => {
     // Hide connection form and show file browser
     connectionView.style.display = 'none';
     fileBrowserView.style.display = 'flex';
+
+    // Show SSH Console button in header
+    if (sshConsoleBtn) {
+      sshConsoleBtn.style.display = 'flex';
+    }
 
     // Ensure disconnect button handler is attached
     setupDisconnectHandler();
@@ -1070,6 +1082,12 @@ async function handleDisconnect() {
       sshConnection = null;
     }
 
+    // Hide SSH Console button and close floating console if open
+    closeSshConsole();
+    if (sshConsoleBtn) {
+      sshConsoleBtn.style.display = 'none';
+    }
+
     // Switch back to connection view
     if (fileBrowserView) {
       fileBrowserView.style.display = 'none';
@@ -1179,6 +1197,204 @@ if (document.readyState === 'loading') {
   });
 } else {
   setupDisconnectHandler();
+}
+
+// Floating SSH Console - dedicated SSH connection for shell (avoids "Not connected" on shared connection)
+let sshConsoleTerminal = null;
+let sshConsoleFitAddon = null;
+let sshConsoleStream = null;
+let sshConsoleClient = null;
+
+function closeSshConsole() {
+  window.removeEventListener('resize', onSshConsoleResize);
+  if (sshConsoleStream) {
+    try {
+      sshConsoleStream.removeAllListeners();
+      sshConsoleStream.end();
+    } catch (e) {
+      // ignore
+    }
+    sshConsoleStream = null;
+  }
+  if (sshConsoleClient) {
+    try {
+      sshConsoleClient.end();
+      sshConsoleClient.removeAllListeners();
+    } catch (e) {
+      // ignore
+    }
+    sshConsoleClient = null;
+  }
+  if (sshConsoleTerminal) {
+    try {
+      sshConsoleTerminal.dispose();
+    } catch (e) {
+      // ignore
+    }
+    sshConsoleTerminal = null;
+  }
+  sshConsoleFitAddon = null;
+  if (sshConsoleTerminalEl) {
+    sshConsoleTerminalEl.innerHTML = '';
+  }
+  if (sshConsoleOverlay) {
+    sshConsoleOverlay.style.display = 'none';
+  }
+}
+
+function openSshConsole() {
+  if (!sshConnection || !sshConnection.config) {
+    alert('No active connection.');
+    return;
+  }
+  // UMD builds may expose Terminal as window.Terminal.Terminal, FitAddon as window.FitAddon.FitAddon
+  const TerminalCtor = (window.Terminal && window.Terminal.Terminal) || window.Terminal;
+  const FitAddonCtor = (window.FitAddon && window.FitAddon.FitAddon) || window.FitAddon;
+  if (!TerminalCtor || !FitAddonCtor) {
+    alert('Terminal library not loaded. Refresh the app.');
+    return;
+  }
+
+  closeSshConsole();
+
+  const config = sshConnection.config;
+  const { host, username } = config;
+  const title = `SSH Console — ${username}@${host}`;
+  if (sshConsoleTitle) {
+    sshConsoleTitle.textContent = title + ' (connecting…)';
+  }
+  if (sshConsoleOverlay) {
+    sshConsoleOverlay.style.display = 'flex';
+  }
+  if (sshConsoleTerminalEl) {
+    sshConsoleTerminalEl.innerHTML = '';
+  }
+
+  const connConfig = {
+    host: config.host,
+    port: config.port || 22,
+    username: config.username,
+    readyTimeout: 20000,
+    keepaliveInterval: 10000,
+  };
+  if (config.password) {
+    connConfig.password = config.password;
+  } else if (config.privateKey) {
+    connConfig.privateKey = config.privateKey;
+    if (config.passphrase) {
+      connConfig.passphrase = config.passphrase;
+    }
+  }
+
+  const shellClient = new Client();
+  sshConsoleClient = shellClient;
+
+  shellClient.on('ready', () => {
+    if (sshConsoleTitle) {
+      sshConsoleTitle.textContent = title;
+    }
+    shellClient.shell((err, stream) => {
+      if (err) {
+        sshConsoleClient = null;
+        if (sshConsoleOverlay) sshConsoleOverlay.style.display = 'none';
+        alert('Could not open shell: ' + err.message);
+        return;
+      }
+      sshConsoleStream = stream;
+
+      const term = new TerminalCtor({
+        cursorBlink: true,
+        theme: {
+          background: '#1e1e2e',
+          foreground: '#cdd6f4',
+          cursor: '#f5e0dc',
+          cursorAccent: '#1e1e2e',
+          selection: 'rgba(166, 227, 161, 0.3)',
+        },
+        fontFamily: 'Menlo, "DejaVu Sans Mono", "Liberation Mono", monospace',
+        fontSize: 14,
+      });
+      const fitAddon = new FitAddonCtor();
+      term.loadAddon(fitAddon);
+
+      if (sshConsoleTerminalEl) {
+        term.open(sshConsoleTerminalEl);
+        fitAddon.fit();
+      }
+
+      stream.on('data', (data) => {
+        term.write(data.toString());
+      });
+      stream.stderr.on('data', (data) => {
+        term.write(data.toString());
+      });
+      stream.on('close', () => {
+        closeSshConsole();
+      });
+
+      term.onData((data) => {
+        stream.write(data);
+      });
+
+      sshConsoleTerminal = term;
+      sshConsoleFitAddon = fitAddon;
+
+      window.addEventListener('resize', onSshConsoleResize);
+      term.focus();
+    });
+  });
+
+  shellClient.on('error', (err) => {
+    sshConsoleClient = null;
+    if (sshConsoleOverlay) sshConsoleOverlay.style.display = 'none';
+    if (sshConsoleTitle) sshConsoleTitle.textContent = title;
+    alert('SSH Console connection failed: ' + err.message);
+  });
+
+  shellClient.connect(connConfig);
+}
+
+function onSshConsoleResize() {
+  if (sshConsoleFitAddon) {
+    sshConsoleFitAddon.fit();
+  }
+}
+
+if (sshConsoleBtn) {
+  sshConsoleBtn.addEventListener('click', () => {
+    if (sshConsoleStream && sshConsoleOverlay && sshConsoleOverlay.style.display === 'none') {
+      sshConsoleOverlay.style.display = 'flex';
+      if (sshConsoleFitAddon) sshConsoleFitAddon.fit();
+      window.addEventListener('resize', onSshConsoleResize);
+      if (sshConsoleTerminal) sshConsoleTerminal.focus();
+      return;
+    }
+    openSshConsole();
+  });
+}
+
+if (sshConsoleClose) {
+  sshConsoleClose.addEventListener('click', () => {
+    closeSshConsole();
+  });
+}
+
+if (sshConsoleMinimize) {
+  sshConsoleMinimize.addEventListener('click', () => {
+    if (sshConsoleOverlay) {
+      sshConsoleOverlay.style.display = 'none';
+    }
+    window.removeEventListener('resize', onSshConsoleResize);
+  });
+}
+
+if (sshConsoleOverlay) {
+  sshConsoleOverlay.addEventListener('click', (e) => {
+    if (e.target === sshConsoleOverlay) {
+      closeSshConsole();
+      window.removeEventListener('resize', onSshConsoleResize);
+    }
+  });
 }
 
 // Initialize saved connections on load

@@ -237,6 +237,21 @@ body {
   }
 }
 
+.header-btn.ssh-console-btn {
+  width: auto;
+  border-radius: 20px;
+  padding: 0 14px;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+}
+
 .header h1 {
   font-size: 28px;
   font-weight: 600;
@@ -1516,5 +1531,113 @@ body {
 
   @include dark-mode {
     border-top-color: $dark-border;
+  }
+}
+
+// Floating SSH Console
+.ssh-console-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  animation: sshConsoleFadeIn 0.2s ease;
+}
+
+.ssh-console-window {
+  width: 90%;
+  max-width: 900px;
+  height: 70vh;
+  min-height: 360px;
+  background: #1e1e2e;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: sshConsoleSlideIn 0.25s ease;
+}
+
+.ssh-console-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #2d2d44;
+  border-bottom: 1px solid #404050;
+  flex-shrink: 0;
+  cursor: move;
+  user-select: none;
+}
+
+.ssh-console-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.ssh-console-titlebar-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ssh-console-btn-minimize,
+.ssh-console-btn-close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #a0a0b0;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+}
+
+.ssh-console-btn-close:hover {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.ssh-console-terminal-wrap {
+  flex: 1;
+  padding: 12px;
+  min-height: 0;
+  overflow: hidden;
+
+  .xterm {
+    height: 100%;
+    padding: 8px;
+  }
+
+  .xterm-viewport {
+    border-radius: 4px;
+  }
+}
+
+@keyframes sshConsoleFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sshConsoleSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
