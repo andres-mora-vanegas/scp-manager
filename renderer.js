@@ -1,12 +1,15 @@
 const { ipcRenderer } = require('electron');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { Client } = require('ssh2');
 const SSHConnection = require('./ssh-connection');
 
 // Global connection instance
 let sshConnection = null;
 let currentPath = '/';
+let currentLocalPath = '';
+let localSelectedPaths = new Set(); // full paths of selected local files for upload
 // Multiple file editing support
 let editingFiles = new Map(); // Map<remotePath, {localPath, filename, watcher}>
 
@@ -39,12 +42,24 @@ const upBtn = document.getElementById('upBtn');
 const refreshBtn = document.getElementById('refreshBtn');
 const currentPathDisplay = document.getElementById('currentPath');
 const fileList = document.getElementById('fileList');
+const localHomeBtn = document.getElementById('localHomeBtn');
+const localUpBtn = document.getElementById('localUpBtn');
+const localRefreshBtn = document.getElementById('localRefreshBtn');
+const localPathDisplay = document.getElementById('localPathDisplay');
+const localFileList = document.getElementById('localFileList');
+const localFileCount = document.getElementById('localFileCount');
+const uploadBtn = document.getElementById('uploadBtn');
 const fileCount = document.getElementById('fileCount');
 const editingStatus = document.getElementById('editingStatus');
 const editingFilesList = document.getElementById('editingFilesList');
 const contextMenu = document.getElementById('contextMenu');
 const editFileOption = document.getElementById('editFileOption');
 const downloadFileOption = document.getElementById('downloadFileOption');
+const renameRemoteOption = document.getElementById('renameRemoteOption');
+const deleteRemoteOption = document.getElementById('deleteRemoteOption');
+const localContextMenu = document.getElementById('localContextMenu');
+const renameLocalOption = document.getElementById('renameLocalOption');
+const deleteLocalOption = document.getElementById('deleteLocalOption');
 const savedConnectionsList = document.getElementById('savedConnectionsList');
 const saveConnectionCheckbox = document.getElementById('saveConnection');
 const refreshConnectionsBtn = document.getElementById('refreshConnectionsBtn');
@@ -553,9 +568,10 @@ connectionForm.addEventListener('submit', async e => {
     // Ensure disconnect button handler is attached
     setupDisconnectHandler();
 
-    // Get initial directory listing
+    // Get initial directory listing (remote) and local pane
     currentPath = '/';
     await loadDirectory(currentPath);
+    loadLocalDirectory(os.homedir());
   } catch (error) {
     // Connection failed - show error
     alert(`Connection failed: ${error.message}`);
@@ -618,6 +634,22 @@ function joinPath(base, ...parts) {
   return result.replace(/\/+/g, '/') || '/';
 }
 
+// Normalize remote path: resolve . and .. segments (e.g. /opt/lib/./.. -> /opt)
+function normalizeRemotePath(remotePath) {
+  if (!remotePath || remotePath === '/') return '/';
+  const parts = remotePath.replace(/\/+$/, '').split('/').filter(Boolean);
+  const result = [];
+  for (const part of parts) {
+    if (part === '.') continue;
+    if (part === '..') {
+      if (result.length) result.pop();
+      continue;
+    }
+    result.push(part);
+  }
+  return result.length ? '/' + result.join('/') : '/';
+}
+
 // Helper function to resolve symlink target path
 function resolveSymlinkTarget(target, currentDir) {
   if (!target) return currentDir;
@@ -644,22 +676,184 @@ function resolveSymlinkTarget(target, currentDir) {
   return '/' + parts.join('/');
 }
 
-// File Browser Functions
+// Local file browser (left pane)
+function loadLocalDirectory(dirPath) {
+  if (!localFileList || !localPathDisplay) return;
+
+  localFileList.innerHTML = '<div class="loading-message">Loading...</div>';
+  localPathDisplay.textContent = dirPath;
+  localPathDisplay.title = dirPath;
+
+  try {
+    const names = fs.readdirSync(dirPath, { withFileTypes: true });
+    const entries = [];
+    for (const dirent of names) {
+      try {
+        const fullPath = path.join(dirPath, dirent.name);
+        const stat = fs.statSync(fullPath);
+        entries.push({
+          name: dirent.name,
+          fullPath,
+          isDirectory: stat.isDirectory(),
+          size: stat.size,
+          mtime: stat.mtime,
+        });
+      } catch (e) {
+        // Skip inaccessible entries
+      }
+    }
+    entries.sort((a, b) => {
+      if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
+    currentLocalPath = dirPath;
+    displayLocalFiles(entries);
+    if (localFileCount) localFileCount.textContent = `${entries.length} item${entries.length !== 1 ? 's' : ''}`;
+  } catch (error) {
+    localFileList.innerHTML = `<div class="error-message">${escapeHtml(error.message)}</div>`;
+    if (localFileCount) localFileCount.textContent = '0 items';
+  }
+}
+
+function displayLocalFiles(entries) {
+  if (!localFileList) return;
+  if (entries.length === 0) {
+    localFileList.innerHTML = '<div class="empty-message">Directory is empty</div>';
+    return;
+  }
+
+  localFileList.innerHTML = entries
+    .map(entry => {
+      const icon = entry.isDirectory ? '📁' : '📄';
+      const size = entry.isDirectory ? '-' : formatFileSize(entry.size);
+      const modified = entry.mtime ? formatDate(entry.mtime) : '-';
+      const selected = localSelectedPaths.has(entry.fullPath) ? ' selected' : '';
+      return `
+        <div class="file-item local-file-item${selected}" data-full-path="${escapeHtml(entry.fullPath)}" data-name="${escapeHtml(entry.name)}" data-is-dir="${entry.isDirectory}">
+          <div class="file-name">
+            <span class="file-icon">${icon}</span>
+            <span class="file-name-text">${escapeHtml(entry.name)}</span>
+          </div>
+          <div class="file-size">${size}</div>
+          <div class="file-modified">${modified}</div>
+        </div>
+      `;
+    })
+    .join('');
+
+  localFileList.querySelectorAll('.local-file-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      const fullPath = item.dataset.fullPath;
+      if (e.ctrlKey || e.metaKey) {
+        if (localSelectedPaths.has(fullPath)) {
+          localSelectedPaths.delete(fullPath);
+        } else {
+          localSelectedPaths.add(fullPath);
+        }
+        item.classList.toggle('selected', localSelectedPaths.has(fullPath));
+      } else {
+        localSelectedPaths.clear();
+        localSelectedPaths.add(fullPath);
+        localFileList.querySelectorAll('.local-file-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+      }
+    });
+
+    item.addEventListener('dblclick', () => {
+      const fullPath = item.dataset.fullPath;
+      const isDir = item.dataset.isDir === 'true';
+      const name = item.dataset.name;
+      if (isDir) {
+        loadLocalDirectory(fullPath);
+      } else {
+        localSelectedPaths.clear();
+        localSelectedPaths.add(fullPath);
+        uploadSelectedToServer();
+      }
+    });
+
+    item.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const fullPath = item.dataset.fullPath;
+      const name = item.dataset.name;
+      const isDir = item.dataset.isDir === 'true';
+      showLocalContextMenu(e, fullPath, name, isDir);
+    });
+  });
+}
+
+async function uploadSelectedToServer() {
+  if (!sshConnection || !sshConnection.isConnected()) {
+    alert('Not connected to server');
+    return;
+  }
+  const selected = Array.from(localSelectedPaths).filter(p => {
+    try {
+      return fs.existsSync(p);
+    } catch (e) {
+      return false;
+    }
+  });
+  if (selected.length === 0) {
+    alert('Select one or more files or folders (Ctrl+click for multiple), then click Upload to server.');
+    return;
+  }
+  const remoteDir = currentPath.endsWith('/') ? currentPath : currentPath + '/';
+  let fileCount = 0;
+  let dirCount = 0;
+  for (const localPath of selected) {
+    const name = path.basename(localPath);
+    const remotePath = remoteDir + name;
+    try {
+      const stat = fs.statSync(localPath);
+      if (stat.isFile()) {
+        await sshConnection.uploadFile(localPath, remotePath);
+        fileCount += 1;
+      } else if (stat.isDirectory()) {
+        await sshConnection.uploadDirectory(localPath, remotePath);
+        dirCount += 1;
+      }
+    } catch (error) {
+      alert(`Upload failed for ${name}: ${error.message}`);
+      return;
+    }
+  }
+  localSelectedPaths.clear();
+  localFileList.querySelectorAll('.local-file-item.selected').forEach(i => i.classList.remove('selected'));
+  const parts = [];
+  if (fileCount) parts.push(`${fileCount} file(s)`);
+  if (dirCount) parts.push(`${dirCount} folder(s)`);
+  alert(`Uploaded ${parts.join(' and ')} to ${remoteDir}`);
+  loadDirectory(currentPath);
+}
+
+// File Browser Functions (remote pane)
 async function loadDirectory(dirPath) {
   if (!sshConnection || !sshConnection.isConnected()) {
     showError('Not connected to server');
     return;
   }
 
+  const normalizedPath = normalizeRemotePath(dirPath);
   fileList.innerHTML = '<div class="loading-message">Loading...</div>';
-  currentPathDisplay.textContent = dirPath;
+  currentPathDisplay.textContent = normalizedPath;
 
   try {
-    const files = await sshConnection.listDirectory(dirPath);
-    currentPath = dirPath;
-    displayFiles(files, dirPath);
+    const files = await sshConnection.listDirectory(normalizedPath);
+    currentPath = normalizedPath;
+    displayFiles(files, normalizedPath);
     updateFileCount(files.length);
   } catch (error) {
+    const isNoSuchFile = /no such file|cannot access|not found/i.test(error.message);
+    if (isNoSuchFile && normalizedPath !== '/') {
+      const parts = normalizedPath.split('/').filter(p => p);
+      parts.pop();
+      const parentPath = parts.length ? '/' + parts.join('/') : '/';
+      currentPath = parentPath;
+      currentPathDisplay.textContent = parentPath;
+      loadDirectory(parentPath);
+      return;
+    }
     showError(`Error loading directory: ${error.message}`);
     console.error('Directory load error:', error);
   }
@@ -749,16 +943,13 @@ function displayFiles(files, dirPath) {
       }
     });
 
-    // Right-click context menu
+    // Right-click context menu (files and directories)
     item.addEventListener('contextmenu', e => {
       e.preventDefault();
       const filename = item.dataset.filename;
       const type = item.dataset.type;
       const fullPath = joinPath(dirPath, filename);
-
-      if (type === 'file') {
-        showContextMenu(e, fullPath, filename);
-      }
+      showRemoteContextMenu(e, fullPath, filename, type);
     });
   });
 }
@@ -807,21 +998,51 @@ homeBtn.addEventListener('click', () => {
 });
 
 upBtn.addEventListener('click', () => {
-  if (currentPath === '/') return;
-  // Get parent directory
-  const parts = currentPath.split('/').filter(p => p);
+  const normalized = normalizeRemotePath(currentPath);
+  if (normalized === '/') return;
+  const parts = normalized.split('/').filter(p => p);
   if (parts.length === 0) return;
   parts.pop();
-  const parentPath = '/' + parts.join('/');
-  loadDirectory(parentPath || '/');
+  const parentPath = parts.length ? '/' + parts.join('/') : '/';
+  loadDirectory(parentPath);
 });
 
 refreshBtn.addEventListener('click', () => {
   loadDirectory(currentPath);
 });
 
-// Context menu handlers
-function showContextMenu(event, filePath, filename) {
+// Local pane navigation
+if (localHomeBtn) {
+  localHomeBtn.addEventListener('click', () => {
+    loadLocalDirectory(os.homedir());
+  });
+}
+if (localUpBtn) {
+  localUpBtn.addEventListener('click', () => {
+    if (!currentLocalPath) return;
+    const parent = path.dirname(currentLocalPath);
+    if (parent === currentLocalPath) return; // already at root (e.g. C:\)
+    loadLocalDirectory(parent);
+  });
+}
+if (localRefreshBtn) {
+  localRefreshBtn.addEventListener('click', () => {
+    if (currentLocalPath) loadLocalDirectory(currentLocalPath);
+  });
+}
+if (uploadBtn) {
+  uploadBtn.addEventListener('click', () => {
+    uploadSelectedToServer();
+  });
+}
+
+// Context menu handlers - Remote pane
+function showRemoteContextMenu(event, filePath, filename, type) {
+  editFileOption.style.display = type === 'file' ? 'block' : 'none';
+  downloadFileOption.style.display = type === 'file' ? 'block' : 'none';
+  if (renameRemoteOption) renameRemoteOption.style.display = 'block';
+  if (deleteRemoteOption) deleteRemoteOption.style.display = 'block';
+
   contextMenu.style.display = 'block';
   contextMenu.style.left = event.pageX + 'px';
   contextMenu.style.top = event.pageY + 'px';
@@ -835,15 +1056,130 @@ function showContextMenu(event, filePath, filename) {
     downloadFile(filePath, filename);
     hideContextMenu();
   };
+
+  if (renameRemoteOption) {
+    renameRemoteOption.onclick = () => {
+      hideContextMenu();
+      renameRemote(filePath, filename, type);
+    };
+  }
+  if (deleteRemoteOption) {
+    deleteRemoteOption.onclick = () => {
+      hideContextMenu();
+      deleteRemote(filePath, filename, type);
+    };
+  }
+}
+
+async function renameRemote(fullPath, filename, type) {
+  if (!sshConnection || !sshConnection.isConnected()) {
+    alert('Not connected to server');
+    return;
+  }
+  const newName = prompt('Enter new name:', filename);
+  if (newName == null || newName.trim() === '') return;
+  if (newName.trim() === filename) return;
+  const parentPath = fullPath.replace(/\/[^/]+$/, '') || '/';
+  const newPath = joinPath(parentPath, newName.trim());
+  try {
+    await sshConnection.renameRemote(fullPath, newPath);
+    loadDirectory(currentPath);
+  } catch (error) {
+    alert(`Rename failed: ${error.message}`);
+  }
+}
+
+async function deleteRemote(fullPath, filename, type) {
+  if (!sshConnection || !sshConnection.isConnected()) {
+    alert('Not connected to server');
+    return;
+  }
+  const kind = type === 'directory' ? 'folder' : 'file';
+  if (!confirm(`Delete ${kind} "${filename}"?${type === 'directory' ? '\nThis will remove all contents inside.' : ''}`)) return;
+  try {
+    if (type === 'directory') {
+      await sshConnection.deleteRemoteDirectory(fullPath);
+    } else {
+      await sshConnection.deleteRemoteFile(fullPath);
+    }
+    // If we deleted the current directory or we were inside it, navigate to parent
+    const deletedDir = normalizeRemotePath(fullPath);
+    const currentNorm = normalizeRemotePath(currentPath || '/');
+    if (currentNorm === deletedDir || currentNorm.startsWith(deletedDir + '/')) {
+      const parts = deletedDir.split('/').filter(Boolean);
+      parts.pop();
+      currentPath = parts.length ? '/' + parts.join('/') : '/';
+    }
+    loadDirectory(currentPath);
+  } catch (error) {
+    alert(`Delete failed: ${error.message}`);
+  }
+}
+
+// Context menu handlers - Local pane
+function showLocalContextMenu(event, fullPath, name, isDir) {
+  if (!localContextMenu) return;
+  localContextMenu.style.display = 'block';
+  localContextMenu.style.left = event.pageX + 'px';
+  localContextMenu.style.top = event.pageY + 'px';
+
+  if (renameLocalOption) {
+    renameLocalOption.onclick = () => {
+      hideLocalContextMenu();
+      renameLocal(fullPath, name, isDir);
+    };
+  }
+  if (deleteLocalOption) {
+    deleteLocalOption.onclick = () => {
+      hideLocalContextMenu();
+      deleteLocal(fullPath, name, isDir);
+    };
+  }
+}
+
+function renameLocal(fullPath, name, isDir) {
+  const newName = prompt('Enter new name:', name);
+  if (newName == null || newName.trim() === '') return;
+  if (newName.trim() === name) return;
+  const parentDir = path.dirname(fullPath);
+  const newPath = path.join(parentDir, newName.trim());
+  try {
+    fs.renameSync(fullPath, newPath);
+    if (currentLocalPath) loadLocalDirectory(currentLocalPath);
+  } catch (error) {
+    alert(`Rename failed: ${error.message}`);
+  }
+}
+
+function deleteLocal(fullPath, name, isDir) {
+  const kind = isDir ? 'folder' : 'file';
+  if (!confirm(`Delete ${kind} "${name}"?${isDir ? '\nThis will remove all contents inside.' : ''}`)) return;
+  try {
+    if (isDir) {
+      fs.rmSync(fullPath, { recursive: true });
+    } else {
+      fs.unlinkSync(fullPath);
+    }
+    if (currentLocalPath) loadLocalDirectory(currentLocalPath);
+  } catch (error) {
+    alert(`Delete failed: ${error.message}`);
+  }
 }
 
 function hideContextMenu() {
   contextMenu.style.display = 'none';
 }
 
+function hideLocalContextMenu() {
+  if (localContextMenu) localContextMenu.style.display = 'none';
+}
+
 document.addEventListener('click', e => {
-  if (!contextMenu.contains(e.target)) {
+  if (contextMenu.style.display === 'block' && !contextMenu.contains(e.target)) {
     hideContextMenu();
+  }
+  if (localContextMenu && localContextMenu.style.display === 'block' && !localContextMenu.contains(e.target)) {
+    hideLocalContextMenu();
   }
 });
 

@@ -263,7 +263,7 @@
           </div>
         </div>
 
-        <!-- File Browser View -->
+        <!-- File Browser View (dual-pane: local left, remote right) -->
         <div id="fileBrowserView" class="file-browser-panel" style="display: none">
           <div class="browser-header">
             <div class="connection-info">
@@ -278,36 +278,73 @@
             </button>
           </div>
 
-          <div class="path-bar">
-            <button class="btn-icon" id="homeBtn" title="Home">
-              <span>🏠</span>
-            </button>
-            <button class="btn-icon" id="upBtn" title="Up">
-              <span>⬆️</span>
-            </button>
-            <button class="btn-icon" id="refreshBtn" title="Refresh">
-              <span>🔄</span>
-            </button>
-            <div class="path-display" id="currentPath">/</div>
-          </div>
-
-          <div class="file-list-container">
-            <div class="file-list-header">
-              <div class="file-col-name">Name</div>
-              <div class="file-col-size">Size</div>
-              <div class="file-col-modified">Modified</div>
-              <div class="file-col-permissions">Permissions</div>
+          <div class="browser-panes">
+            <!-- Left: Local machine -->
+            <div class="browser-pane browser-pane-local">
+              <div class="pane-title">Local</div>
+              <div class="path-bar path-bar-local">
+                <button type="button" class="btn-icon" id="localHomeBtn" title="Home">
+                  <span>🏠</span>
+                </button>
+                <button type="button" class="btn-icon" id="localUpBtn" title="Up">
+                  <span>⬆️</span>
+                </button>
+                <button type="button" class="btn-icon" id="localRefreshBtn" title="Refresh">
+                  <span>🔄</span>
+                </button>
+                <div class="path-display" id="localPathDisplay"></div>
+              </div>
+              <div class="file-list-container">
+                <div class="file-list-header file-list-header-local">
+                  <div class="file-col-name">Name</div>
+                  <div class="file-col-size">Size</div>
+                  <div class="file-col-modified">Modified</div>
+                </div>
+                <div class="file-list" id="localFileList">
+                  <div class="loading-message">Loading...</div>
+                </div>
+              </div>
+              <div class="pane-footer pane-footer-local">
+                <div class="file-count" id="localFileCount">0 items</div>
+                <button type="button" class="btn btn-primary btn-sm" id="uploadBtn" title="Upload selected to current remote folder">
+                  ⬆ Upload to server
+                </button>
+              </div>
             </div>
-            <div class="file-list" id="fileList">
-              <div class="loading-message">Loading...</div>
-            </div>
-          </div>
 
-          <div class="browser-footer">
-            <div class="file-count" id="fileCount">0 items</div>
-            <div id="editingStatus" class="editing-status" style="display: none">
-              <span class="editing-label">Editing:</span>
-              <div id="editingFilesList" class="editing-files-list"></div>
+            <!-- Right: Remote server -->
+            <div class="browser-pane browser-pane-remote">
+              <div class="pane-title">Remote</div>
+              <div class="path-bar">
+                <button class="btn-icon" id="homeBtn" title="Home">
+                  <span>🏠</span>
+                </button>
+                <button class="btn-icon" id="upBtn" title="Up">
+                  <span>⬆️</span>
+                </button>
+                <button class="btn-icon" id="refreshBtn" title="Refresh">
+                  <span>🔄</span>
+                </button>
+                <div class="path-display" id="currentPath">/</div>
+              </div>
+              <div class="file-list-container">
+                <div class="file-list-header">
+                  <div class="file-col-name">Name</div>
+                  <div class="file-col-size">Size</div>
+                  <div class="file-col-modified">Modified</div>
+                  <div class="file-col-permissions">Permissions</div>
+                </div>
+                <div class="file-list" id="fileList">
+                  <div class="loading-message">Loading...</div>
+                </div>
+              </div>
+              <div class="browser-footer">
+                <div class="file-count" id="fileCount">0 items</div>
+                <div id="editingStatus" class="editing-status" style="display: none">
+                  <span class="editing-label">Editing:</span>
+                  <div id="editingFilesList" class="editing-files-list"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -330,10 +367,17 @@
       </div>
     </div>
 
-    <!-- Context Menu -->
+    <!-- Context Menu (remote pane) -->
     <div id="contextMenu" class="context-menu" style="display: none">
       <div class="context-menu-item" id="editFileOption">✏️ Edit File</div>
       <div class="context-menu-item" id="downloadFileOption">⬇️ Download</div>
+      <div class="context-menu-item" id="renameRemoteOption">✏️ Rename</div>
+      <div class="context-menu-item context-menu-item-danger" id="deleteRemoteOption">🗑️ Delete</div>
+    </div>
+    <!-- Context Menu (local pane) -->
+    <div id="localContextMenu" class="context-menu" style="display: none">
+      <div class="context-menu-item" id="renameLocalOption">✏️ Rename</div>
+      <div class="context-menu-item context-menu-item-danger" id="deleteLocalOption">🗑️ Delete</div>
     </div>
 
     <!-- Settings Modal -->

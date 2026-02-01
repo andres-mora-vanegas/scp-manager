@@ -1,5 +1,7 @@
 const { Client } = require('ssh2');
 const path = require('path');
+const fs = require('fs');
+const { spawn } = require('child_process');
 
 // Helper function to join paths
 function joinPath(base, ...parts) {
@@ -415,6 +417,175 @@ class SSHConnection {
     });
   }
 
+  /**
+   * Ensure a remote directory exists (create it and parents if needed).
+   */
+  ensureRemoteDir(remotePath) {
+    return new Promise((resolve, reject) => {
+      if (!this.sftp) {
+        reject(new Error('SFTP session not established'));
+        return;
+      }
+      const normalized = remotePath.replace(/\/+$/, '') || '/';
+      const parts = normalized.split('/').filter(Boolean);
+      let current = normalized.startsWith('/') ? '' : '.';
+      const createNext = (index) => {
+        if (index >= parts.length) {
+          resolve();
+          return;
+        }
+        current = current ? current + '/' + parts[index] : '/' + parts[index];
+        this.sftp.mkdir(current, (err) => {
+          if (err && err.code !== 4 && !/exist|already exists/i.test(String(err.message))) {
+            reject(err);
+            return;
+          }
+          createNext(index + 1);
+        });
+      };
+      createNext(0);
+    });
+  }
+
+  /**
+   * Upload a local directory recursively to the remote path.
+   */
+  async uploadDirectory(localPath, remotePath) {
+    if (this.useSudo) {
+      return this.uploadDirectoryWithSudo(localPath, remotePath);
+    }
+    const normalizedRemote = remotePath.replace(/\/+$/, '') || '/';
+    await this.ensureRemoteDir(normalizedRemote);
+    const names = fs.readdirSync(localPath);
+    for (const name of names) {
+      if (name === '.' || name === '..') continue;
+      const localFull = path.join(localPath, name);
+      let stat;
+      try {
+        stat = fs.statSync(localFull);
+      } catch (e) {
+        continue;
+      }
+      const remoteFull = normalizedRemote + '/' + name;
+      if (stat.isDirectory()) {
+        await this.ensureRemoteDir(remoteFull);
+        await this.uploadDirectory(localFull, remoteFull);
+      } else {
+        await this.ensureRemoteDir(normalizedRemote);
+        await this.uploadFile(localFull, remoteFull);
+      }
+    }
+  }
+
+  uploadDirectoryWithSudo(localPath, remotePath) {
+    const self = this;
+    const normalizedRemote = remotePath.replace(/\/+$/, '') || '/';
+    return this.ensureRemoteDirWithSudo(normalizedRemote).then(() => {
+      return new Promise((resolve, reject) => {
+        if (!self.client || !self.connected) {
+          reject(new Error('SSH connection not established'));
+          return;
+        }
+        const escapedRemote = normalizedRemote.replace(/'/g, "'\"'\"'");
+        const command = self.sudoPassword
+          ? `sudo -S tar -x -C '${escapedRemote}'`
+          : `sudo tar -x -C '${escapedRemote}'`;
+
+        self.client.exec(command, (err, stream) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          let stderr = '';
+          stream.stderr.on('data', (d) => { stderr += d.toString(); });
+          stream.on('close', (code) => {
+            if (code !== 0) {
+              reject(new Error(`Failed to extract directory: ${stderr || 'Unknown error'}`));
+              return;
+            }
+            resolve();
+          });
+
+          if (self.sudoPassword) {
+            stream.write(self.sudoPassword + '\n');
+          }
+
+          const tar = spawn('tar', ['-cf', '-', '-C', localPath, '.'], {
+            stdio: ['ignore', 'pipe', 'pipe'],
+          });
+          tar.stdout.pipe(stream, { end: true });
+          tar.stderr.on('data', (d) => { stderr += d.toString(); });
+          tar.on('error', (e) => {
+            stream.destroy();
+            reject(e);
+          });
+          tar.on('close', (code) => {
+            if (code !== 0) {
+              stream.destroy();
+              reject(new Error(`tar failed: ${stderr || 'Unknown error'}`));
+            }
+          });
+        });
+      });
+    });
+  }
+
+  async uploadDirectoryRecursiveWithSudo(localPath, remoteBase) {
+    const names = fs.readdirSync(localPath);
+    for (const name of names) {
+      if (name === '.' || name === '..') continue;
+      const localFull = path.join(localPath, name);
+      let stat;
+      try {
+        stat = fs.statSync(localFull);
+      } catch (e) {
+        continue;
+      }
+      const remoteFull = remoteBase + '/' + name;
+      if (stat.isDirectory()) {
+        const escaped = remoteFull.replace(/'/g, "'\"'\"'");
+        const mkdirCmd = this.sudoPassword
+          ? `echo '${this.sudoPassword.replace(/'/g, "'\"'\"'")}' | sudo -S mkdir -p '${escaped}'`
+          : `sudo mkdir -p '${escaped}'`;
+        await new Promise((res, rej) => {
+          this.client.exec(mkdirCmd, (err, stream) => {
+            if (err) return rej(err);
+            let stderr = '';
+            stream.stderr.on('data', (d) => { stderr += d.toString(); });
+            stream.on('close', (code) => (code === 0 ? res() : rej(new Error(stderr || 'mkdir failed'))));
+          });
+        });
+        await this.uploadDirectoryRecursiveWithSudo(localFull, remoteFull);
+      } else {
+        await this.ensureRemoteDirWithSudo(remoteBase);
+        await this.uploadFileWithSudo(localFull, remoteFull);
+      }
+    }
+  }
+
+  ensureRemoteDirWithSudo(remotePath) {
+    return new Promise((resolve, reject) => {
+      if (!this.client || !this.connected) {
+        reject(new Error('SSH connection not established'));
+        return;
+      }
+      const normalized = remotePath.replace(/\/+$/, '') || '/';
+      const escaped = normalized.replace(/'/g, "'\"'\"'");
+      const cmd = this.sudoPassword
+        ? `echo '${this.sudoPassword.replace(/'/g, "'\"'\"'")}' | sudo -S mkdir -p '${escaped}'`
+        : `sudo mkdir -p '${escaped}'`;
+      this.client.exec(cmd, (err, stream) => {
+        if (err) return reject(err);
+        let stderr = '';
+        stream.stderr.on('data', (d) => { stderr += d.toString(); });
+        stream.on('close', (code) => {
+          if (code !== 0) reject(new Error(stderr || 'mkdir failed'));
+          else resolve();
+        });
+      });
+    });
+  }
+
   uploadFile(localPath, remotePath) {
     if (this.useSudo) {
       return this.uploadFileWithSudo(localPath, remotePath);
@@ -443,16 +614,14 @@ class SSHConnection {
         return;
       }
 
-      const fs = require('fs');
       const fileContent = fs.readFileSync(localPath);
       const base64Content = fileContent.toString('base64');
       const escapedPath = remotePath.replace(/'/g, "'\"'\"'");
 
-      // Use base64 encoding to safely transfer file content
-      // Decode and write using sudo tee
+      // Stream base64 via stdin to avoid command-line length limits and quoting issues
       const command = this.sudoPassword
-        ? `echo '${this.sudoPassword.replace(/'/g, "'\"'\"'")}' | sudo -S sh -c "echo '${base64Content}' | base64 -d > '${escapedPath}'"`
-        : `sudo sh -c "echo '${base64Content}' | base64 -d > '${escapedPath}'"`;
+        ? `sudo -S base64 -d > '${escapedPath}'`
+        : `sudo base64 -d > '${escapedPath}'`;
 
       this.client.exec(command, (err, stream) => {
         if (err) {
@@ -461,8 +630,11 @@ class SSHConnection {
         }
 
         let stderr = '';
+        stream.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
 
-        stream.on('close', code => {
+        stream.on('close', (code) => {
           if (code !== 0) {
             reject(new Error(`Failed to upload file: ${stderr || 'Unknown error'}`));
             return;
@@ -470,8 +642,138 @@ class SSHConnection {
           resolve(remotePath);
         });
 
-        stream.stderr.on('data', data => {
-          stderr += data.toString();
+        if (this.sudoPassword) {
+          stream.write(this.sudoPassword + '\n');
+        }
+        stream.write(base64Content + '\n');
+        stream.end();
+      });
+    });
+  }
+
+  /**
+   * Rename or move a file/directory on the remote server.
+   */
+  renameRemote(oldPath, newPath) {
+    return new Promise((resolve, reject) => {
+      if (!this.sftp) {
+        reject(new Error('SFTP session not established'));
+        return;
+      }
+      this.sftp.rename(oldPath, newPath, (err) => {
+        if (err) reject(err);
+        else resolve(newPath);
+      });
+    });
+  }
+
+  /**
+   * Delete a file on the remote server.
+   */
+  deleteRemoteFile(remotePath) {
+    if (this.useSudo) {
+      return this.deleteRemoteFileWithSudo(remotePath);
+    }
+    return new Promise((resolve, reject) => {
+      if (!this.sftp) {
+        reject(new Error('SFTP session not established'));
+        return;
+      }
+      this.sftp.unlink(remotePath, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+
+  deleteRemoteFileWithSudo(remotePath) {
+    return new Promise((resolve, reject) => {
+      if (!this.client || !this.connected) {
+        reject(new Error('SSH connection not established'));
+        return;
+      }
+      const escaped = remotePath.replace(/'/g, "'\"'\"'");
+      const cmd = this.sudoPassword
+        ? `echo '${this.sudoPassword.replace(/'/g, "'\"'\"'")}' | sudo -S rm -f '${escaped}'`
+        : `sudo rm -f '${escaped}'`;
+      this.client.exec(cmd, (err, stream) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        let stderr = '';
+        stream.stderr.on('data', (data) => { stderr += data.toString(); });
+        stream.on('close', (code) => {
+          if (code !== 0) {
+            reject(new Error(`Failed to delete file: ${stderr || 'Unknown error'}`));
+            return;
+          }
+          resolve();
+        });
+      });
+    });
+  }
+
+  /**
+   * Delete a directory on the remote server (recursive).
+   */
+  deleteRemoteDirectory(remotePath) {
+    if (this.useSudo) {
+      return this.deleteRemoteDirectoryWithSudo(remotePath);
+    }
+    return this._deleteRemoteDirectoryViaSftp(remotePath);
+  }
+
+  async _deleteRemoteDirectoryViaSftp(remotePath) {
+    if (!this.sftp) {
+      throw new Error('SFTP session not established');
+    }
+    const list = await new Promise((resolve, reject) => {
+      this.sftp.readdir(remotePath, (err, entries) => {
+        if (err) reject(err);
+        else resolve(entries || []);
+      });
+    });
+    for (const entry of list) {
+      const fullPath = joinPath(remotePath, entry.filename);
+      const isDir = entry.attrs.isDirectory();
+      if (isDir) {
+        await this._deleteRemoteDirectoryViaSftp(fullPath);
+      } else {
+        await this.deleteRemoteFile(fullPath);
+      }
+    }
+    return new Promise((resolve, reject) => {
+      this.sftp.rmdir(remotePath, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+
+  deleteRemoteDirectoryWithSudo(remotePath) {
+    return new Promise((resolve, reject) => {
+      if (!this.client || !this.connected) {
+        reject(new Error('SSH connection not established'));
+        return;
+      }
+      const escaped = remotePath.replace(/'/g, "'\"'\"'");
+      const cmd = this.sudoPassword
+        ? `echo '${this.sudoPassword.replace(/'/g, "'\"'\"'")}' | sudo -S rm -rf '${escaped}'`
+        : `sudo rm -rf '${escaped}'`;
+      this.client.exec(cmd, (err, stream) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        let stderr = '';
+        stream.stderr.on('data', (data) => { stderr += data.toString(); });
+        stream.on('close', (code) => {
+          if (code !== 0) {
+            reject(new Error(`Failed to delete directory: ${stderr || 'Unknown error'}`));
+            return;
+          }
+          resolve();
         });
       });
     });

@@ -566,6 +566,65 @@ body.dark-mode .checkbox-label {
   min-height: 0;
 }
 
+.browser-panes {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.browser-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid #e0e0e0;
+}
+body.dark-mode .browser-pane {
+  border-right-color: #404050;
+}
+.browser-pane:last-child {
+  border-right: none;
+}
+
+.pane-title {
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+}
+body.dark-mode .pane-title {
+  color: #d0d0e0;
+  background: #252538;
+  border-bottom-color: #404050;
+}
+
+.file-list-header-local {
+  grid-template-columns: 2fr 1fr 1.5fr;
+}
+
+.pane-footer,
+.pane-footer-local {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  flex-shrink: 0;
+}
+body.dark-mode .pane-footer,
+body.dark-mode .pane-footer-local {
+  border-top-color: #404050;
+  background: #252538;
+}
+
 .browser-header {
   display: flex;
   justify-content: space-between;
@@ -737,12 +796,15 @@ body.dark-mode .file-item.symlink, body.dark-mode .file-item.symlink-dir {
 .file-item.symlink-dir {
   font-weight: 500;
 }
-.file-item.selected {
+.file-item.selected, .file-item.local-file-item.selected {
   background: #e3e8ff;
 }
-body.dark-mode .file-item.selected {
+body.dark-mode .file-item.selected, body.dark-mode .file-item.local-file-item.selected {
   background: #4a4a62;
   color: #ffffff;
+}
+.file-item.local-file-item {
+  grid-template-columns: 2fr 1fr 1.5fr;
 }
 
 .file-name {
@@ -1128,6 +1190,18 @@ body.dark-mode .context-menu-item:hover {
 }
 body.dark-mode .context-menu-item:active {
   background: #5a5a72;
+}
+.context-menu-item.context-menu-item-danger {
+  color: #c62828;
+}
+body.dark-mode .context-menu-item.context-menu-item-danger {
+  color: #ef5350;
+}
+.context-menu-item.context-menu-item-danger:hover {
+  background: #ffebee !important;
+}
+body.dark-mode .context-menu-item.context-menu-item-danger:hover {
+  background: #4a2020 !important;
 }
 
 .editing-status {
