@@ -210,8 +210,14 @@ class ConnectionDatabase {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
         `);
 
+    // Handle both 'name' and 'connectionName' (form sends connectionName)
+    const connectionName =
+      connectionData.name || connectionData.connectionName || null;
+    const finalName =
+      connectionName || `${connectionData.username}@${connectionData.host}`;
+
     stmt.bind([
-      connectionData.name || `${connectionData.username}@${connectionData.host}`,
+      finalName,
       connectionData.host,
       connectionData.port || 22,
       connectionData.username,

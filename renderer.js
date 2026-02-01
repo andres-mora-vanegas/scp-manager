@@ -178,13 +178,22 @@ browseKeyfileBtn.addEventListener('click', async () => {
       filters: [
         { name: 'All Files', extensions: ['*'] },
         { name: 'Private Key Files', extensions: ['pem', 'key', 'rsa', 'id_rsa'] },
+        { name: 'Public Key (use matching private key)', extensions: ['pub'] },
       ],
       properties: ['openFile'],
     });
 
     if (!result.canceled && result.filePaths.length > 0) {
-      const filePath = result.filePaths[0];
+      let filePath = result.filePaths[0];
+      // If user picked a .pub file, use the matching private key in the same folder if it exists
+      if (filePath.toLowerCase().endsWith('.pub')) {
+        const privateKeyPath = filePath.slice(0, -4);
+        if (fs.existsSync(privateKeyPath)) {
+          filePath = privateKeyPath;
+        }
+      }
       keyfileInput.value = filePath;
+      delete keyfileInput.dataset.privateKey;
 
       // Validate that the file exists
       if (!fs.existsSync(filePath)) {
@@ -445,10 +454,26 @@ connectionForm.addEventListener('submit', async e => {
       return;
     }
   } else {
-    const keyfilePath = keyfileInput.value.trim();
+    let keyfilePath = keyfileInput.value.trim();
     if (!keyfilePath) {
       alert('Please select a private key file');
       return;
+    }
+
+    // If user selected a .pub (public key) file, use the matching private key in the same folder
+    if (keyfilePath.toLowerCase().endsWith('.pub')) {
+      const privateKeyPath = keyfilePath.slice(0, -4); // strip .pub
+      if (fs.existsSync(privateKeyPath)) {
+        keyfilePath = privateKeyPath;
+        keyfileInput.value = privateKeyPath;
+        delete keyfileInput.dataset.privateKey; // force re-read
+      } else {
+        alert(
+          'You selected a public key (.pub). The private key is usually in the same folder with the same name but without .pub (e.g. id_rsa).\n\nNo private key found at:\n' +
+            privateKeyPath
+        );
+        return;
+      }
     }
 
     if (!fs.existsSync(keyfilePath)) {
@@ -458,9 +483,19 @@ connectionForm.addEventListener('submit', async e => {
 
     formData.keyfile = keyfilePath;
 
-    // Try to read the private key
+    // Try to read the private key (must be PEM format: BEGIN PRIVATE KEY / BEGIN RSA PRIVATE KEY / etc.)
     try {
-      formData.privateKey = keyfileInput.dataset.privateKey || fs.readFileSync(keyfilePath, 'utf8');
+      const keyContent = keyfileInput.dataset.privateKey || fs.readFileSync(keyfilePath, 'utf8');
+      if (
+        !keyContent.includes('BEGIN') &&
+        (keyContent.trim().startsWith('ssh-rsa ') || keyContent.trim().startsWith('ssh-ed25519 '))
+      ) {
+        alert(
+          'This file looks like a public key (.pub format). SSH login requires your private key (e.g. id_rsa without .pub). Please select the private key file.'
+        );
+        return;
+      }
+      formData.privateKey = keyContent;
     } catch (error) {
       alert('Error reading key file: ' + error.message);
       return;
